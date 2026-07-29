@@ -1,0 +1,15 @@
+# ─── termbg (kitty) ─────────────────────────────────────────────────────
+# Append these lines to ~/.config/kitty/kitty.conf, then FULLY restart kitty
+# (close every window — a reload/SIGUSR1 is not enough for listen_on to bind).
+#
+# termbg drives kitty's background image over remote control. Without
+# allow_remote_control + listen_on, the backgrounded daemon (which has no
+# controlling window) cannot reach kitty and termbg shows nothing.
+
+allow_remote_control    yes
+listen_on               unix:/tmp/kitty
+
+# The art's opacity is baked into the PNG by termbg, so kitty must NOT dim or
+# tint the background itself, and must scale the image to fill the window.
+background_tint         0.0
+background_image_layout scaled

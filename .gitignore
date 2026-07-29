@@ -1,0 +1,23 @@
+# environment
+.venv/
+__pycache__/
+
+# generated art + caches (recreated at runtime)
+termbg-*.png
+bedazzle.wall.png
+termbg.state/
+bedazzle.cache.json
+
+# per-machine runtime state
+termbg.events
+termbg.pid
+bedazzle.lava.pid
+bedazzle.weather.txt
+github.state.json
+*.tmp
+
+# personal preferences (fresh defaults on a new machine)
+bedazzle.config.json
+termbg.config.json
+pet.json
+bedazzle.pet.pid

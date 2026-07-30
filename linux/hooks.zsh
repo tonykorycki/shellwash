@@ -1,8 +1,4 @@
-# ═══════════════════════════════════════════════════════════════════════
-#  bedazzle — always-on hooks (any theme, p10k included).
-#  Cheap by design: file appends + one printf'd json. No python in the
-#  hot path; the GitHub/git poll is throttled and fully backgrounded.
-# ═══════════════════════════════════════════════════════════════════════
+# Shellwash — always-on hooks (any theme, p10k included).
 
 zmodload zsh/datetime 2>/dev/null
 

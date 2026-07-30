@@ -1,14 +1,14 @@
 # Themes & Accent
 
-## The theme manager
+## Theme manager
 
-bedazzle treats the prompt as three cases:
+Shellwash treats the prompt as three cases:
 
 | Theme | What it is |
 |-------|-----------|
-| `p10k` (a.k.a. `powerlevel10k`) | **The default.** Your existing powerlevel10k config drives the prompt; bedazzle only layers addons (corner buddy, hooks, termbg feed) on top. |
-| `bedazzle` | The minimal one-accent prompt: shortened path (+git +venv) on the left; duration · status · clock · battery · weather right-aligned. |
-| any other name | Treated as an **oh-my-zsh theme** — the manager looks for `<name>.zsh-theme` in `$ZSH_CUSTOM/themes`, `$ZSH/custom/themes`, and `$ZSH/themes`. |
+| `p10k` | **Default.** powerlevel10k drives the prompt; Shellwash layers addons on top. |
+| `bedazzle` | Minimal one-accent prompt: path + git + venv left; duration, status, clock, battery, weather right. |
+| any other name | An **oh-my-zsh theme** in your themes dir. |
 
 Switch with `bedazzle theme <name>`. `bedazzle theme random` rolls among
 `bedazzle`, `p10k`, and every installed omz theme (the omz `example`

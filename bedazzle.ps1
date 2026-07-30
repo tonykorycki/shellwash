@@ -1,9 +1,5 @@
-﻿# ═══════════════════════════════════════════════════════════════════════
-#  bedazzle — shell upgrade (prompt, buddy, fetch, lava, termbg hooks)
-#  Dot-sourced from your PowerShell profile.
-#  `bedazzle` toggles every feature · `buddy` shows the pet roster
-#  Undo: delete the marked block in $PROFILE.
-# ═══════════════════════════════════════════════════════════════════════
+﻿# Shellwash — shell layer (prompt, buddy, fetch, lava, termbg hooks)
+# Dot-sourced from your PowerShell profile. `bedazzle` toggles features.
 
 $global:AD = @{
     Root       = Split-Path -Parent $MyInvocation.MyCommand.Path

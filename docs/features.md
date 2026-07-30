@@ -29,8 +29,8 @@ equivalent.
 | Feature | Default | What it does |
 |---------|:-------:|--------------|
 | `accent_p10k` | **off** | Tint powerlevel10k's key segments (dir, clean VCS, virtualenv, prompt char) with your accent hue. Best-effort; p10k configs vary. Only applies while the theme is p10k. |
-| `pet_github` | on | The pet reacts to git state and GitHub PR review comments (needs `git` + an authenticated `gh`). Drives the pet's `notify` state. |
-| `termbg_auto` | on | Auto-start the living background daemon on login — but only when a real backend is present (kitty here, or Windows Terminal). No-op in a plain terminal. |
+| `pet_github` | on | Pet reacts to git state and GitHub PR comments. Needs `gh auth login`. |
+| `termbg_auto` | on | Auto-start termbg on login when kitty or WT is present. |
 
 ## Notes
 

@@ -1,75 +1,105 @@
 #!/usr/bin/env bash
-# ═══════════════════════════════════════════════════════════════════════
-#  bedazzle — Linux / zsh installer.
-#  Clone the repo anywhere, then:  bash linux/install.sh
-#  Idempotent. Keeps p10k as your default prompt; layers the addons on top.
-#  Undo: remove the marked block from ~/.zshrc.
-# ═══════════════════════════════════════════════════════════════════════
+# Shellwash — Linux / zsh installer.
+# Usually invoked by ./install.sh or after clone: bash linux/install.sh
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ZSHRC="${ZDOTDIR:-$HOME}/.zshrc"
+KITTY_CONF="${XDG_CONFIG_HOME:-$HOME/.config}/kitty/kitty.conf"
+KITTY_MARKER='# >>> shellwash termbg >>>'
+KITTY_END='# <<< shellwash termbg <<<'
 
 say() { printf '  %s\n' "$*"; }
-printf '\033[36mbedazzle — linux installer\033[0m\n'
+warn() { printf '  \033[33m%s\033[0m\n' "$*"; }
+
+printf '\033[36mShellwash installer\033[0m\n'
 say "repo: $ROOT"
 
-# 1. python + numpy. If system python3 already has numpy, use it as-is
-#    (offline-friendly). Otherwise build a venv and pip-install requirements.
 if ! command -v python3 >/dev/null 2>&1; then
   say "python3 not found — install Python 3.10+ first"; exit 1
 fi
 if python3 -c 'import numpy' >/dev/null 2>&1; then
-  say "system python3 has numpy — using it (no venv needed)"
+  say "system python3 has numpy"
+  LOGIN_PY="python3"
 elif [[ -x "$ROOT/.venv/bin/python" ]] && "$ROOT/.venv/bin/python" -c 'import numpy' >/dev/null 2>&1; then
-  say "existing venv has numpy — using it"
+  say "venv python has numpy"
+  LOGIN_PY="$ROOT/.venv/bin/python"
 else
   say "creating venv + installing numpy…"
   python3 -m venv "$ROOT/.venv"
   "$ROOT/.venv/bin/python" -m pip install --quiet --upgrade pip >/dev/null 2>&1 || true
   "$ROOT/.venv/bin/python" -m pip install --quiet -r "$ROOT/requirements.txt"
+  LOGIN_PY="$ROOT/.venv/bin/python"
 fi
 
-# 2. ~/.zshrc block (sourced AFTER omz/p10k so p10k stays the default prompt)
-MARKER_START='# >>> bedazzle >>>'
-MARKER_END='# <<< bedazzle <<<'
-OLD_MARKER='# >>> ascii-dreams >>>'
-if [[ -f "$ZSHRC" ]] && { grep -qF "$MARKER_START" "$ZSHRC" || grep -qF "$OLD_MARKER" "$ZSHRC"; }; then
+# ── zshrc: main source block ─────────────────────────────────────────────
+MARKER_START='# >>> shellwash >>>'
+MARKER_END='# <<< shellwash <<<'
+if [[ -f "$ZSHRC" ]] && grep -qE '# >>> (shellwash|bedazzle|ascii-dreams) >>>' "$ZSHRC"; then
   say "zshrc block already present — skipped"
 else
-  cp -f "$ZSHRC" "$ZSHRC.bak-before-bedazzle" 2>/dev/null || true
+  touch "$ZSHRC"
+  cp -f "$ZSHRC" "$ZSHRC.bak-before-shellwash" 2>/dev/null || true
   {
     printf '\n\n%s\n' "$MARKER_START"
     printf 'source "%s/linux/init.zsh"\n' "$ROOT"
     printf '%s\n' "$MARKER_END"
   } >> "$ZSHRC"
-  say "appended source block to $ZSHRC (backup: .bak-before-bedazzle)"
+  say "appended shellwash block to $ZSHRC"
 fi
 
-# 3. login panel — prepended BEFORE p10k's instant prompt so a startup
-#    banner never trips the "console output during initialization" warning.
-#    (fetch.py --login self-checks the 'fetch' toggle and is numpy-free.)
-TOP_START='# >>> bedazzle login >>>'
-TOP_END='# <<< bedazzle login <<<'
-OLD_TOP='# >>> ascii-dreams login >>>'
-if grep -qF "$TOP_START" "$ZSHRC" 2>/dev/null || grep -qF "$OLD_TOP" "$ZSHRC" 2>/dev/null; then
-  say "login-panel block already present — skipped"
+# ── zshrc: login panel (before p10k instant prompt) ───────────────────────
+TOP_START='# >>> shellwash login >>>'
+TOP_END='# <<< shellwash login <<<'
+if grep -qE '# >>> (shellwash|bedazzle|ascii-dreams) login >>>' "$ZSHRC" 2>/dev/null; then
+  say "login block already present — skipped"
 else
+  cp -f "$ZSHRC" "$ZSHRC.bak-before-shellwash" 2>/dev/null || true
   tmp="$(mktemp)"
   {
     printf '%s\n' "$TOP_START"
-    printf '[[ -o interactive ]] && command python3 "%s/linux/fetch.py" --login 2>/dev/null\n' "$ROOT"
+    printf '[[ -o interactive ]] && command %s "%s/linux/fetch.py" --login 2>/dev/null\n' "$LOGIN_PY" "$ROOT"
     printf '%s\n\n' "$TOP_END"
     cat "$ZSHRC"
   } > "$tmp"
   mv "$tmp" "$ZSHRC"
-  say "prepended login-panel block (runs before p10k instant prompt)"
+  say "prepended login block (before p10k instant prompt)"
 fi
 
-printf '\n\033[32mdone.\033[0m open a new terminal (or run: reload), then try:\n'
-say "bedazzle              feature toggles + theme manager"
-say "bedazzle theme bedazzle   switch prompt (p10k is the default)"
-say "buddy / buddy roll    pet roster + gacha"
-say "pet                   corner buddy (works in any theme)"
-say "fetch · lava · hr     system panel · corner lamp · divider"
-say "termbg on             living background (needs kitty; see README)"
+# ── kitty: termbg remote-control snippet ──────────────────────────────────
+install_kitty_snippet() {
+  if ! command -v kitty >/dev/null 2>&1; then
+    warn "kitty not on PATH — skipped kitty.conf (termbg needs kitty on Linux)"
+    return 0
+  fi
+  if [[ -f "$KITTY_CONF" ]] && grep -qF "$KITTY_MARKER" "$KITTY_CONF" 2>/dev/null; then
+    say "kitty.conf snippet already present — skipped"
+    return 0
+  fi
+  mkdir -p "$(dirname "$KITTY_CONF")"
+  [[ -f "$KITTY_CONF" ]] && cp -f "$KITTY_CONF" "$KITTY_CONF.bak-before-shellwash" 2>/dev/null || true
+  {
+    [[ -f "$KITTY_CONF" ]] && cat "$KITTY_CONF" && printf '\n'
+    printf '%s\n' "$KITTY_MARKER"
+    grep -v '^#' "$ROOT/docs/kitty.conf.snippet" | grep -v '^[[:space:]]*$' || true
+    printf '%s\n' "$KITTY_END"
+  } > "${KITTY_CONF}.shellwash-tmp"
+  mv "${KITTY_CONF}.shellwash-tmp" "$KITTY_CONF"
+  say "appended termbg settings to $KITTY_CONF"
+  warn "restart kitty fully (all windows) for termbg to work"
+}
+install_kitty_snippet
+
+# ── optional apt hints (never run sudo here) ──────────────────────────────
+if command -v apt-get >/dev/null 2>&1; then
+  missing=()
+  command -v playerctl >/dev/null 2>&1 || missing+=(playerctl)
+  if ((${#missing[@]})); then
+    warn "optional: sudo apt install ${missing[*]}  (nowplaying module)"
+  fi
+fi
+
+printf '\n\033[32mdone.\033[0m open a new terminal (or: exec zsh), then try:\n'
+say "bedazzle"
+say "termbg on        living background (after kitty restart)"
+say "buddy            pet roster"

@@ -1,117 +1,110 @@
 # Setup / Install
 
-bedazzle installs the same way on both platforms: clone the repo anywhere,
-run the installer, open a fresh shell. The only Python dependency is
-**numpy** (`requirements.txt`). Everything else is optional and degrades
-gracefully.
+## Before you install
 
----
+### Linux
 
-## Linux (zsh + oh-my-zsh + powerlevel10k)
+| | Requirement | Notes |
+|---|-------------|--------|
+| **Required** | **zsh** + **[oh-my-zsh](https://ohmyz.sh/)** | Installer sources `linux/init.zsh` from your `~/.zshrc`. |
+| **Required** | **Python 3.10+** | `python3` on PATH. |
+| **Required** | **git** | Clone + install script. |
+| **Required** | **[kitty](https://sw.kovidgoyal.net/kitty/)** | For **termbg** on Linux. Bedazzle (prompt, buddy, fetch) works in any terminal; termbg has nowhere to display without kitty. Installer appends the needed kitty.conf lines. |
+| **Expected** | **[powerlevel10k](https://github.com/romkatv/powerlevel10k)** | Stays your default prompt. Shellwash layers on top. |
+| **Installed by script** | **numpy** | Via system python or a repo-local `.venv/`. |
 
-### 1. Run the installer
+### Windows
+
+| | Requirement | Notes |
+|---|-------------|--------|
+| **Required** | **PowerShell 5.1+** | |
+| **Required** | **[Windows Terminal](https://github.com/microsoft/terminal)** | termbg sets `backgroundImage` in WT settings. |
+| **Required** | **Python 3.10+** | On PATH as `python`. |
+| **Required** | **git** | Clone + install script. |
+| **Installed by script** | **numpy** | In repo-local `.venv/`. |
+
+### Optional extras
+
+None of these block install. They unlock specific features:
+
+| Tool | Install (example) | Enables |
+|------|-------------------|---------|
+| **playerctl** | `sudo apt install playerctl` | `nowplaying` termbg module (MPRIS music). Test: `playerctl status`. |
+| **Pillow** | `pip install Pillow` | Album-art pixels in `nowplaying` (falls back to a colored disc without it). |
+| **curl** | usually preinstalled | Cached weather in fetch + prompt (`bedazzle on weather`). |
+| **git** | usually preinstalled | Branch chip, `skyline` / `gitlife` termbg modules. |
+| **GitHub CLI (`gh`)** | [cli.github.com](https://cli.github.com/) | Buddy **notify** reaction when PR review comments arrive (`pet_github` toggle, on by default). |
+
+#### GitHub CLI setup
+
+Only needed for the pet's PR-comment reaction (not for git prompt or git-themed backgrounds):
 
 ```bash
-bash linux/install.sh
+# install gh, then:
+gh auth login
 ```
 
-The installer is **idempotent** (safe to re-run) and does three things:
-
-1. **Python / numpy.** If your system `python3` already imports `numpy`, it is
-   used as-is (offline-friendly, no venv). Otherwise it creates `.venv/` in the
-   repo and `pip install`s `requirements.txt`. Requires Python 3.10+.
-2. **`~/.zshrc` source block.** Appends a marked block that sources
-   `linux/init.zsh`. It is added **after** oh-my-zsh / p10k so **powerlevel10k
-   stays your default prompt**; bedazzle only layers its addons on top. A
-   backup is written to `~/.zshrc.bak-before-bedazzle`.
-3. **Login panel block.** Prepends a small block to the **top** of `~/.zshrc`
-   (before p10k's instant prompt) that prints the `fetch` login panel. This
-   ordering is deliberate — printing a banner after instant-prompt starts would
-   trip p10k's "console output during initialization" warning. The block calls
-   `fetch.py --login`, which self-checks the `fetch` toggle and needs no numpy.
-
-**Undo:** remove the two marked blocks (`# >>> bedazzle ... <<<` and
-`# >>> bedazzle login ... <<<`) from `~/.zshrc`.
-
-Then open a new terminal (or run `reload`) and try `bedazzle`, `buddy`,
-`pet`, `fetch`, `termbg on`.
-
-### 2. Configure kitty (required for `termbg`)
-
-`termbg` drives kitty's background image over kitty's remote-control socket.
-Without the right settings it shows nothing. Append the contents of
-[`kitty.conf.snippet`](kitty.conf.snippet) to `~/.config/kitty/kitty.conf`:
-
-```
-allow_remote_control    yes
-listen_on               unix:/tmp/kitty
-background_tint          0.0
-background_image_layout  scaled
-```
-
-- `allow_remote_control yes` **and** `listen_on unix:/tmp/kitty` — the termbg
-  daemon runs backgrounded with no controlling window, so it can only reach
-  kitty through the listen socket.
-- `background_tint 0.0` — termbg bakes opacity into the PNG itself, so kitty
-  must not dim/tint the image.
-- `background_image_layout scaled` — the image is scaled to fill the window.
-
-After editing, **fully restart kitty** — close every window. A config reload
-(SIGUSR1 / `ctrl+shift+F5`) is **not** enough for `listen_on` to bind the
-socket.
-
-### 3. Optional extras (`sudo apt install`)
-
-| Package | Enables |
-|---------|---------|
-| `playerctl` | The `nowplaying` termbg module (reads your music over MPRIS). |
-| `python3-pil` / `pip install Pillow` | Album-art pixels in `nowplaying` (falls back to a colored "vinyl" disc without it). |
-| `git`, `gh` | The `skyline`/`gitlife` termbg modules and the pet's GitHub reactions. `gh` must be authenticated for PR-comment reactions. |
-| `curl` | Cached wttr.in weather in the panel / prompt. |
-
-### powerlevel10k coexistence
-
-- p10k remains the default prompt after install. The bedazzle theme is opt-in
-  via `bedazzle theme bedazzle`.
-- The always-on hooks (command timing, pet feed, termbg feed, corner buddy)
-  run under **every** theme, p10k included — they are cheap file writes with no
-  Python in the prompt hot path.
-- If `accent_p10k` is enabled, a few p10k segments (dir, vcs-clean, virtualenv,
-  prompt char) are tinted with your accent hue. This is best-effort; p10k
-  configs vary.
+Follow the prompts (browser or token). Verify with `gh auth status`. The buddy
+poll runs in the background every ~90s when `pet_github` is on.
 
 ---
 
-## Windows (PowerShell + Windows Terminal)
+## Install
 
-### 1. Run the installer
+The installer is idempotent (safe to re-run).
+
+### One command
+
+**Linux:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/tonykorycki/shellwash/main/install.sh | bash
+exec zsh
+```
+
+**Windows:**
 
 ```powershell
-.\install.ps1
+irm https://raw.githubusercontent.com/tonykorycki/shellwash/main/install-remote.ps1 | iex
 ```
 
-Idempotent. It:
+Installs to `~/.local/share/shellwash` (Linux) or `%LOCALAPPDATA%\shellwash`
+(Windows): Python deps, shell profile hooks, and kitty termbg settings (Linux).
 
-1. Creates `.venv\` and `pip install`s `requirements.txt` (needs Python 3.10+
-   on PATH).
-2. Appends a marked block to your PowerShell `$PROFILE` that dot-sources
-   `bedazzle.ps1`. A backup is written to `$PROFILE.bak-before-bedazzle`.
+### Manual
 
-**Undo:** delete the `# >>> bedazzle >>> ... <<<` block from `$PROFILE`.
+```bash
+git clone https://github.com/tonykorycki/shellwash.git
+cd shellwash && bash install.sh && exec zsh
+```
 
-Open a new tab and try `bedazzle`, `buddy`, `fetch`, `lava`, `termbg on`.
-
-### 2. termbg on Windows Terminal
-
-No manual config needed. `termbg` edits Windows Terminal's `settings.json`
-(`profiles.defaults.backgroundImage` + `backgroundImageOpacity`), which WT
-hot-reloads. termbg backs up the original `settings.json` to
-`settings.json.bak-bedazzle` and restores your background color on `termbg off`.
+Windows: clone, then `.\install.ps1`.
 
 ---
 
-## Config file
+## What the installer does
 
-Both platforms share one config file, `bedazzle.config.json`, at the repo root.
-You normally never edit it by hand — the `bedazzle` command reads and writes it.
-See [features.md](features.md) for every key.
+1. Python / numpy (system or `.venv/`).
+2. Shell profile block (`# >>> shellwash >>>`).
+3. Login fetch panel before p10k instant prompt (Linux).
+4. kitty.conf termbg snippet if kitty is installed (Linux).
+5. Backups as `*.bak-before-shellwash` before first edit.
+
+**Undo:** remove `# >>> shellwash … <<<` from `~/.zshrc` or `$PROFILE`.
+
+---
+
+## After install
+
+1. **Linux:** fully **restart kitty** (all windows) if termbg is new to you.
+2. Open a **new** terminal tab.
+3. Run `bedazzle`, then `termbg on` if the background did not auto-start.
+
+See [troubleshooting.md](troubleshooting.md) if termbg or the buddy does not appear.
+
+---
+
+## Config
+
+Settings live in `bedazzle.config.json`. Use `bedazzle on/off <feature>` or see
+[features.md](features.md).

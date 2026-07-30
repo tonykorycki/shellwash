@@ -1,7 +1,4 @@
-# ═══════════════════════════════════════════════════════════════════════
-#  bedazzle — command surface: theme manager + launchers
-#  (fetch/buddy/pet/lava/termbg/hr).
-# ═══════════════════════════════════════════════════════════════════════
+# Shellwash — command surface: bedazzle control, themes, launchers.
 
 autoload -Uz add-zsh-hook
 

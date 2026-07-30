@@ -1,15 +1,11 @@
 # The Buddy
 
-A reactive ASCII pet that lives in the top-right corner of your terminal. It
-changes face based on what just happened — a failed command startles it, a long
-task makes it happy, idling puts it to sleep.
+Reactive ASCII pet in the top-right corner.
 
-- `buddy` — show the gallery, hats, and roll odds.
-- `buddy roll` — gacha: roll a random buddy **and** a hat, and adopt them.
-- `bedazzle sprite <name>` — pick a buddy directly.
-- `bedazzle hat <name>` — pick a hat (`daily`, `none`, or a specific one).
-- `pet` — toggle the corner buddy on/off. (`bedazzle on/off sprite` is the
-  same toggle.)
+- `buddy` - gallery, hats, roll odds.
+- `buddy roll` - gacha buddy + hat.
+- `bedazzle sprite <name>` / `bedazzle hat <name>` - pick directly.
+- `pet` - toggle corner buddy (`bedazzle on/off sprite` is the same).
 
 ## The roster (18)
 

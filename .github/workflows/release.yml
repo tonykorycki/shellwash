@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          body: |
+            ## Install (Linux / zsh)
+
+            ```bash
+            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref_name }}/install.sh | bash
+            ```
+
+            ## Install (Windows / PowerShell)
+
+            ```powershell
+            irm https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref_name }}/install-remote.ps1 | iex
+            ```
+
+            Requires Python 3.10+, zsh (Linux) or PowerShell + Windows Terminal (Windows).
+            The installer wires your shell profile and kitty.conf automatically.

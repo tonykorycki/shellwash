@@ -1,12 +1,8 @@
-# ═══════════════════════════════════════════════════════════════════════
-#  bedazzle — entrypoint. Source this ONE line from ~/.zshrc, AFTER
-#  oh-my-zsh + p10k have loaded:
+# Shellwash — entrypoint. Source from ~/.zshrc, AFTER oh-my-zsh + p10k:
 #
-#     source ~/ascii-art/linux/init.zsh
+#     source ~/shellwash/linux/init.zsh
 #
-#  Keeps p10k as the default prompt; layers the addons + toggles on top.
-#  `bedazzle` shows everything. Undo: remove that source line.
-# ═══════════════════════════════════════════════════════════════════════
+# Keeps p10k as default; layers addons on top. `bedazzle` shows everything.
 
 # only in interactive shells
 [[ -o interactive ]] || return 0
@@ -15,7 +11,7 @@ typeset -g AD_ROOT="${${(%):-%x}:A:h:h}"
 
 source "$AD_ROOT/linux/core.zsh"
 ad_load_config || {
-  print -r -- "bedazzle: could not load config (is python3 available?)" >&2
+  print -r -- "shellwash: could not load config (is python3 available?)" >&2
   return 1
 }
 source "$AD_ROOT/linux/buddies.zsh"

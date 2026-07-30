@@ -1,11 +1,9 @@
-# termbg — the living background
+# termbg
 
-`termbg` paints a regenerating pixel-art image *behind your terminal text*. It
-evolves as you work: the bedazzle prompt appends one cheap line per command to
-`termbg.events` (`ok|<count>|<cwd>`), and a background daemon polls that file,
-advances the active module's persistent state, renders a small pixel grid,
-nearest-neighbor upscales it (chunky pixels on purpose), applies the overlay,
-and hands the image to the terminal.
+`termbg` paints regenerating pixel-art *behind your terminal text*. The
+Shellwash hooks append one line per command to `termbg.events`
+(`ok|<count>|<cwd>`). A background daemon polls that file, advances module
+state, renders, and hands the image to the terminal.
 
 See [commands.md](commands.md#termbg--the-living-background) for the command
 surface. This page is the reference for the display model and the catalog.
@@ -29,8 +27,8 @@ surface. This page is the reference for the display model and the catalog.
 
 | Backend | How it displays | Opacity |
 |---------|-----------------|---------|
-| **kitty** (Linux) | Sets kitty's background image over remote control (`kitty @ set-background-image --layout scaled`) via the `KITTY_LISTEN_ON` socket. Needs `allow_remote_control yes` + `listen_on unix:/tmp/kitty` + `background_tint 0.0` in `kitty.conf` — see [install.md](install.md#2-configure-kitty-required-for-termbg). | Baked into the PNG. |
-| **Windows Terminal** | Edits `settings.json` (`profiles.defaults.backgroundImage` + `backgroundImageOpacity`), which WT hot-reloads. Backs up the original to `settings.json.bak-bedazzle`; restores your background color on `off`. | WT blends it. |
+| **kitty** (Linux) | `kitty @ set-background-image` via listen socket. Needs snippet in [install.md](install.md). | Baked into PNG. |
+| **Windows Terminal** | Edits `settings.json` (`backgroundImage`, `backgroundImageOpacity`), which WT hot-reloads. Backs up to `settings.json.bak-shellwash`; restores on `off`. | WT blends. |
 
 The backend is auto-detected (`KITTY_WINDOW_ID`/`xterm-kitty` → kitty;
 `WT_SESSION` or a found `settings.json` → wt).

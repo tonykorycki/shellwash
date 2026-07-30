@@ -9,7 +9,7 @@ Alternating PNG filenames (termbg-a/termbg-b) force that reload — writing
 the same path never would.
 
 Flow:
-  - the bedazzle prompt appends one line per command to termbg.events
+  - the Shellwash prompt appends one line per command to termbg.events
     ("ok|<count>|<cwd>") — costs ~1ms, never blocks
   - a background daemon (pythonw, started by `termbg on`) polls the events
     file, advances the active module's persistent state, renders a small
@@ -1522,7 +1522,10 @@ def wt_set_background(png_path, opacity, bg_hex, gstate):
     profiles = cfg.get("profiles")
     if not isinstance(profiles, dict):
         return "unsupported settings layout"
-    backup = path + ".bak-bedazzle"
+    backup = path + ".bak-shellwash"
+    legacy = path + ".bak-bedazzle"
+    if not os.path.exists(backup) and os.path.exists(legacy):
+        backup = legacy
     if not os.path.exists(backup):
         with open(path, "rb") as src, open(backup, "wb") as dst:
             dst.write(src.read())

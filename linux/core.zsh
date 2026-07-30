@@ -1,10 +1,5 @@
-# ═══════════════════════════════════════════════════════════════════════
-#  bedazzle — core: colors, accent math, config (zsh port of bedazzle.ps1)
-#  Sourced by init.zsh. No per-prompt python: config is read ONCE into
-#  memory and only re-read when the user changes something.
-# ═══════════════════════════════════════════════════════════════════════
-
-typeset -g  AD_ROOT="${AD_ROOT:-${${(%):-%x}:A:h:h}}"   # repo root (…/ascii-art)
+# Shellwash — core: colors, accent, config (zsh port of bedazzle.ps1)
+typeset -g  AD_ROOT="${AD_ROOT:-${${(%):-%x}:A:h:h}}"
 typeset -g  AD_LINUX="$AD_ROOT/linux"
 typeset -g  AD_PY="python3"
 typeset -g  AD_VENV_PY="$AD_ROOT/.venv/bin/python"

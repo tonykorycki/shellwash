@@ -27,6 +27,8 @@ DEFAULTS = {
     "sprite": "cat",
     "hat": "daily",
     "theme": "p10k",                  # p10k | bedazzle | <any omz theme name>
+    "logo": "planet",                 # fetch image: a name in logos.LOGOS, or "random"
+    "logo_pool": [],                  # names "random" may roll; empty = all
     "features": {
         "fetch": True,        # system panel on startup
         "sprite": True,       # buddy in the prompt corner (bedazzle theme)
@@ -56,9 +58,11 @@ def load():
         return cfg
     if isinstance(j.get("accent"), (int, float)):
         cfg["accent"] = float(j["accent"])
-    for k in ("sprite", "hat", "theme"):
+    for k in ("sprite", "hat", "theme", "logo"):
         if isinstance(j.get(k), str):
             cfg[k] = j[k]
+    if isinstance(j.get("logo_pool"), list):
+        cfg["logo_pool"] = [n for n in j["logo_pool"] if isinstance(n, str)]
     if isinstance(j.get("features"), dict):
         for name, val in j["features"].items():
             if name in cfg["features"]:

@@ -159,6 +159,7 @@ bedazzle() {
     hat)     command $AD_PY "$AD_ROOT/pet.py" hat "$name";    ad_load_config
              (( $+functions[ad_buddy_cache] )) && ad_buddy_cache ;;
     stats)   ad_stats ;;
+    logo)    command $AD_PY "$AD_LINUX/logos.py" "${@:2}" ;;
     ""|help|list)
       print -r -- ""
       print -r -- "  ${acc}${AD_ESC}[1mbedazzle${e0} ${dim}— every addon, individually togglable${e0}"
@@ -173,6 +174,7 @@ bedazzle() {
       print -r -- "  ${dim} bedazzle theme <name>       p10k (default) · bedazzle · any omz theme${e0}"
       print -r -- "  ${dim} bedazzle accent <name|hue>  blue·violet·green·amber·red·cyan·pink${e0}"
       print -r -- "  ${dim} bedazzle sprite|hat <name>  pick buddy / hat   ('buddy' shows the roster)${e0}"
+      print -r -- "  ${dim} bedazzle logo [name|random] fetch image; 'bedazzle logo' for pool + gallery${e0}"
       print -r -- "  ${dim} buddy [roll] · pet · fetch · lava · termbg · hr${e0}"
       print -r -- ""
       ;;

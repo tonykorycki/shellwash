@@ -69,7 +69,8 @@ duration, exit status, clock, battery, weather on the right.
 **Buddy:** ASCII pet in the top-right. `buddy` shows the roster; `pet` toggles
 it in any theme.
 
-**fetch** - system panel on startup. **lava** - corner metaballs lamp.
+**fetch** - system panel on startup, with a pixel logo you pick or roll
+(`bedazzle logo`). **lava** - corner metaballs lamp.
 
 Also: `bedazzle accent`, `bedazzle stats`, `hr`, and `bedazzle theme …`.
 

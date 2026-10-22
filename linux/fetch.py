@@ -4,9 +4,11 @@ fetch.py — fastfetch-style system panel for Linux and macOS, in your accent hu
 
 The PowerShell `fetch` used Windows CIM/WMI; this is the native port:
 system facts from /proc, /sys and os-release (or sysctl / vm_stat / pmset
-on macOS), a math-generated pixel planet tinted to your bedazzle accent,
+on macOS), a pixel logo from logos.py tinted to your bedazzle accent,
 memory/disk bars, and the 16-color palette strip. Run on demand (bedazzle
 theme startup, or `fetch`).
+
+  fetch.py [--login] [--logo <name>] [--gallery]
 
 Static facts are cached in bedazzle.cache.json so repeat calls are instant.
 """
@@ -21,6 +23,9 @@ import socket
 import subprocess
 import sys
 import time
+
+import adconf
+import logos
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -245,51 +250,6 @@ def weather():
     return ""
 
 
-# ── pixel planet (generated, tinted to accent) ─────────────────────────────
-
-def planet_lines():
-    hue = accent_hue()
-    W, H = 23, 14
-    cx, cy, r = 11.0, 6.5, 5.2
-    c1, c2, c3, c4 = hsv(hue, .30, 1.0), hsv(hue, .55, .95), hsv(hue, .70, .72), hsv(hue, .80, .45)
-    ring1, ring2 = hsv(hue + 55, .55, 1.0), hsv(hue + 55, .65, .65)
-    grid = [[None] * W for _ in range(H)]
-    for y in range(H):
-        for x in range(W):
-            dx, dy = (x - cx) * 0.92, y - cy
-            in_planet = dx * dx + dy * dy <= r * r
-            ex, ey = (x - cx) / 10.5, (y - cy + (x - cx) * 0.18) / 2.1
-            ringv = ex * ex + ey * ey
-            on_ring = abs(ringv - 1.0) < 0.22
-            ring_front = y > (cy - (x - cx) * 0.18)
-            px = None
-            if in_planet:
-                lx, ly = dx / r + 0.55, dy / r + 0.55
-                d = (lx * lx + ly * ly) ** 0.5
-                px = c1 if d < .55 else c2 if d < .95 else c3 if d < 1.35 else c4
-            if on_ring and (not in_planet or ring_front):
-                px = ring2 if ringv < 1.0 else ring1
-            if px is None and (x * 7 + y * 13) % 41 == 0:
-                px = (90, 95, 120)
-            grid[y][x] = px
-    lines = []
-    for y in range(0, H, 2):
-        parts = []
-        for x in range(W):
-            t = grid[y][x]
-            b = grid[y + 1][x] if y + 1 < H else None
-            if t is None and b is None:
-                parts.append(RESET + " ")
-            elif b is None:
-                parts.append(f"{RESET}{fg(*t)}▀")
-            elif t is None:
-                parts.append(f"{RESET}{fg(*b)}▄")
-            else:
-                parts.append(f"{E}38;2;{t[0]};{t[1]};{t[2]};48;2;{b[0]};{b[1]};{b[2]}m▀")
-        lines.append("".join(parts) + RESET)
-    return lines
-
-
 def bar(frac, width=12):
     frac = max(0.0, min(1.0, frac))
     fill = round(frac * width)
@@ -311,6 +271,17 @@ def main():
     # so a login banner never trips the "console output" warning.
     if "--login" in sys.argv and not fetch_enabled():
         return
+    if "--gallery" in sys.argv:
+        logos.main(["gallery"])
+        return
+    cfg = adconf.load()
+    logo_name = logos.choose(cfg)
+    if "--logo" in sys.argv:
+        i = sys.argv.index("--logo")
+        logo_name = sys.argv[i + 1] if i + 1 < len(sys.argv) else ""
+        if logo_name not in logos.LOGOS:
+            print(f" unknown logo '{logo_name}' (have: {', '.join(logos.LOGOS)})")
+            return
     try:
         sys.stdout.reconfigure(encoding="utf-8")
     except AttributeError:
@@ -345,11 +316,11 @@ def main():
     rows.append(("", "".join(f"{E}4{i}m   " for i in range(8)) + RESET))
     rows.append(("", "".join(f"{E}10{i}m   " for i in range(8)) + RESET))
 
-    logo = planet_lines()
+    logo = logos.lines(logo_name, accent_hue())
     n = max(len(logo), len(rows))
     print()
     for i in range(n):
-        left = logo[i] if i < len(logo) else " " * 23
+        left = logo[i] if i < len(logo) else " " * logos.W
         if i < len(rows):
             k, v = rows[i]
             right = f"{acc}{k.ljust(9)}{RESET}{v}" if k else v

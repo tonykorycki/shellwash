@@ -4,7 +4,7 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 rc=0
 
-echo "── python: macOS fact parsers ────────────────────────────────────"
+echo "── python: fetch parsers + logos ─────────────────────────────────"
 python3 -m unittest discover "$ROOT/tests" -v 2>&1 | tail -3 || rc=1
 
 echo

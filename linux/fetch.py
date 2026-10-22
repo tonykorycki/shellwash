@@ -316,11 +316,11 @@ def main():
     rows.append(("", "".join(f"{E}4{i}m   " for i in range(8)) + RESET))
     rows.append(("", "".join(f"{E}10{i}m   " for i in range(8)) + RESET))
 
-    logo = logos.lines(logo_name, accent_hue())
+    logo, logo_w = logos.lines(logo_name, accent_hue(), cfg.get("logo_bands", False))
     n = max(len(logo), len(rows))
     print()
     for i in range(n):
-        left = logo[i] if i < len(logo) else " " * logos.W
+        left = logo[i] if i < len(logo) else " " * logo_w
         if i < len(rows):
             k, v = rows[i]
             right = f"{acc}{k.ljust(9)}{RESET}{v}" if k else v

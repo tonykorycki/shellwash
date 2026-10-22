@@ -29,6 +29,7 @@ DEFAULTS = {
     "theme": "p10k",                  # p10k | bedazzle | <any omz theme name>
     "logo": "planet",                 # fetch image: a name in logos.LOGOS, or "random"
     "logo_pool": [],                  # names "random" may roll; empty = all
+    "logo_bands": False,              # color text logos in horizontal bands
     "features": {
         "fetch": True,        # system panel on startup
         "sprite": True,       # buddy in the prompt corner (bedazzle theme)
@@ -61,6 +62,8 @@ def load():
     for k in ("sprite", "hat", "theme", "logo"):
         if isinstance(j.get(k), str):
             cfg[k] = j[k]
+    if isinstance(j.get("logo_bands"), bool):
+        cfg["logo_bands"] = j["logo_bands"]
     if isinstance(j.get("logo_pool"), list):
         cfg["logo_pool"] = [n for n in j["logo_pool"] if isinstance(n, str)]
     if isinstance(j.get("features"), dict):

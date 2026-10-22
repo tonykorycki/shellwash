@@ -39,10 +39,13 @@ pet_github termbg_auto`. See [features.md](features.md).
 - `bedazzle logo random` - roll a logo from the pool on every launch.
 - `bedazzle logo pool <names…>` - set the pool; `pool add|rm <names…>` edits it,
   `pool all` resets it to every logo.
-- `bedazzle logo gallery` - preview every logo side by side; pool members in accent.
+- `bedazzle logo bands on|off` - color text logos in horizontal stripes of the accent.
+- `bedazzle logo gallery` - preview every logo; pool members are labelled in accent.
 
-Logos: `planet synthwave blackhole scope torus mushroom`, all tinted to the accent.
-Adding one: write a function `hue -> grid` in `linux/logos.py` and register it in `LOGOS`.
+Logos: `planet` (pixel art), `saturn crt floppy moon`, and classic fetch logos
+`tux arch debian gentoo apple puffy freebsd ubuntu rhel slackware`, all tinted to
+the accent. Add your own as `~/.config/shellwash/logos/<name>.txt`; see
+[logos/README.md](../logos/README.md) for the format.
 
 **`bedazzle stats`**
 - Linux: theme, accent swatch, current sprite.

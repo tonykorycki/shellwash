@@ -11,11 +11,21 @@ ad_theme_teardown_ours() {
   add-zsh-hook -d precmd ad_bedazzle_precmd 2>/dev/null
 }
 
+# p10k's instant prompt redirects stdout/stderr until its own first precmd
+# hook restores them. Removing the _p9k* hooks at startup skips that, and
+# every command's output vanishes — so end the instant prompt first.
+ad_p10k_release() {
+  (( $+functions[_p9k_instant_prompt_cleanup] )) || return 0
+  _p9k_instant_prompt_cleanup 0
+  setopt prompt_cr prompt_sp
+}
+
 ad_theme_apply() {
   local name="$1" h
   case "$name" in
     bedazzle)
       # stop p10k driving the prompt, then install ours
+      ad_p10k_release
       for h in $precmd_functions;  do [[ $h == (_p9k*|powerlevel*|prompt_powerlevel*) ]] && add-zsh-hook -d precmd  $h; done
       for h in $preexec_functions; do [[ $h == (_p9k*|powerlevel*|prompt_powerlevel*) ]] && add-zsh-hook -d preexec $h; done
       add-zsh-hook precmd ad_bedazzle_precmd
@@ -31,6 +41,7 @@ ad_theme_apply() {
       ad_theme_teardown_ours
       # p10k's precmd rewrites PROMPT every command, so it must be removed or
       # it clobbers whatever the omz theme sets.
+      ad_p10k_release
       for h in $precmd_functions;  do [[ $h == (_p9k*|powerlevel*|prompt_powerlevel*) ]] && add-zsh-hook -d precmd  $h; done
       for h in $preexec_functions; do [[ $h == (_p9k*|powerlevel*|prompt_powerlevel*) ]] && add-zsh-hook -d preexec $h; done
       RPROMPT=''

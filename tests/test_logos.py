@@ -114,15 +114,15 @@ class Discovery(unittest.TestCase):
 
 class Choose(unittest.TestCase):
     def test_fixed_choice(self):
-        self.assertEqual(logos.choose({"logo": "crt"}), "crt")
+        self.assertEqual(logos.choose({"logo": "gentoo"}), "gentoo")
 
     def test_unknown_name_falls_back(self):
         self.assertEqual(logos.choose({"logo": "nope"}), logos.DEFAULT)
 
     def test_random_rolls_only_from_the_pool(self):
-        cfg = {"logo": "random", "logo_pool": ["crt", "arch", "gone"]}
+        cfg = {"logo": "random", "logo_pool": ["gentoo", "arch", "gone"]}
         rolls = {logos.choose(cfg, random.Random(i)) for i in range(60)}
-        self.assertEqual(rolls, {"crt", "arch"})
+        self.assertEqual(rolls, {"gentoo", "arch"})
 
     def test_empty_or_stale_pool_means_all(self):
         self.assertEqual(logos.pool({"logo_pool": []}), list(logos.LOGOS))
@@ -152,8 +152,8 @@ class Cli(unittest.TestCase):
             return json.load(f)
 
     def test_pick_and_random_persist(self):
-        self.assertEqual(self.run_cli("crt")[0], 0)
-        self.assertEqual(self.saved()["logo"], "crt")
+        self.assertEqual(self.run_cli("gentoo")[0], 0)
+        self.assertEqual(self.saved()["logo"], "gentoo")
         self.run_cli("random")
         self.assertEqual(self.saved()["logo"], "random")
 
@@ -164,19 +164,19 @@ class Cli(unittest.TestCase):
         self.assertNotIn("logo", self.saved())
 
     def test_pool_set_add_rm_all(self):
-        self.run_cli("pool", "arch", "crt")
-        self.assertEqual(self.saved()["logo_pool"], ["arch", "crt"])
+        self.run_cli("pool", "arch", "gentoo")
+        self.assertEqual(self.saved()["logo_pool"], ["arch", "gentoo"])
         self.run_cli("pool", "add", "planet", "arch")
-        self.assertEqual(self.saved()["logo_pool"], ["arch", "crt", "planet"])
-        self.run_cli("pool", "rm", "crt")
+        self.assertEqual(self.saved()["logo_pool"], ["arch", "gentoo", "planet"])
+        self.run_cli("pool", "rm", "gentoo")
         self.assertEqual(self.saved()["logo_pool"], ["arch", "planet"])
         self.run_cli("pool", "all")
         self.assertEqual(self.saved()["logo_pool"], [])
 
     def test_rm_from_all_and_refuse_empty(self):
-        self.run_cli("pool", "rm", "moon")
+        self.run_cli("pool", "rm", "slackware")
         self.assertEqual(sorted(self.saved()["logo_pool"]),
-                         sorted(n for n in logos.LOGOS if n != "moon"))
+                         sorted(n for n in logos.LOGOS if n != "slackware"))
         self.run_cli("pool", "planet")
         rc, out = self.run_cli("pool", "rm", "planet")
         self.assertEqual(rc, 1)

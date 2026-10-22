@@ -42,7 +42,7 @@ pet_github termbg_auto`. See [features.md](features.md).
 - `bedazzle logo bands on|off` - color text logos in horizontal stripes of the accent.
 - `bedazzle logo gallery` - preview every logo; pool members are labelled in accent.
 
-Logos: `planet` (pixel art), `saturn crt floppy moon`, and classic fetch logos
+Logos: `planet` (pixel art) and classic fetch logos
 `tux arch debian gentoo apple puffy freebsd ubuntu rhel slackware`, all tinted to
 the accent. Add your own as `~/.config/shellwash/logos/<name>.txt`; see
 [logos/README.md](../logos/README.md) for the format.

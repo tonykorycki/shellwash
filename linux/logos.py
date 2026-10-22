@@ -102,10 +102,6 @@ PIXEL = {"planet": (planet, "ringed planet, pixel art")}
 
 # Bundled files in listing order; files in logos/ not named here list after.
 DESCRIPTIONS = {
-    "saturn":    "ringed planet, glyph art",
-    "crt":       "retro terminal",
-    "floppy":    "3.5\" floppy disk",
-    "moon":      "shaded-block moon",
     "tux":       "Tux",
     "arch":      "Arch Linux",
     "debian":    "Debian swirl",

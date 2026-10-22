@@ -11,6 +11,29 @@ zmodload zsh/datetime 2>/dev/null
 # AD_LAST_MS / AD_LAST_STATUS are maintained by hooks.zsh (ad_feed_*),
 # which run before this precmd — so the bedazzle prompt just consumes them.
 
+# Battery percentage -> $AD_BAT_PCT ("" when there is no battery).
+# Runs in precmd, so it must not fork: Linux reads sysfs directly ($(<file)
+# is a builtin read in zsh, not a subshell), and the macOS pmset call is
+# cached for 60s.
+#
+# NEVER call this as "$(ad_battery_pct)" — the cache lives in these globals
+# and a command substitution runs in a subshell that discards them, so every
+# prompt would fork pmset. Read $AD_BAT_PCT after calling instead.
+typeset -g AD_BAT_PCT="" AD_BAT_AT=0
+: ${AD_BAT_SYSFS:=/sys/class/power_supply}   # overridable so tests can fake it
+ad_battery_pct() {
+  local bf
+  for bf in $AD_BAT_SYSFS/BAT*/capacity(N); do   # (N): no match -> no error
+    [[ -r "$bf" ]] && { AD_BAT_PCT="$(<$bf)"; return; }
+  done
+  [[ "$OSTYPE" == darwin* ]] || { AD_BAT_PCT=""; return; }
+  (( EPOCHSECONDS - AD_BAT_AT < 60 )) && return          # cached answer stands
+  AD_BAT_AT=$EPOCHSECONDS
+  # " -InternalBattery-0 (id=…)<TAB>87%; discharging; …" -> "87"
+  AD_BAT_PCT="${$(pmset -g batt 2>/dev/null)%%\%*}"
+  AD_BAT_PCT="${AD_BAT_PCT##*[^0-9]}"
+}
+
 # walk up for .git/HEAD; echo "branch<TAB>state" or nothing
 ad_git_info() {
   local d="$PWD" head branch state=""
@@ -64,10 +87,8 @@ ad_right_info() {
   local clock; strftime -s clock '%H:%M' $EPOCHSECONDS
   parts+=("${dim}${clock}${e0}"); plain+=("$clock")
   if ad_on battery; then
-    local cap="" bf
-    for bf in /sys/class/power_supply/BAT*/capacity; do
-      [[ -f "$bf" ]] && { cap="$(<$bf)"; break; }
-    done
+    ad_battery_pct                      # sets AD_BAT_PCT; not $(…) — see above
+    local cap="$AD_BAT_PCT"
     if [[ "$cap" == <-> ]]; then
       local bc="$dim"; (( cap <= 20 )) && bc="$(ad_fg 248 81 73)"
       parts+=("${bc}${cap}%${e0}"); plain+=("${cap}%")

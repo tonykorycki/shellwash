@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-fetch.py — fastfetch-style system panel for Linux, in your accent hue.
+fetch.py — fastfetch-style system panel for Linux and macOS, in your accent hue.
 
 The PowerShell `fetch` used Windows CIM/WMI; this is the native port:
-system facts from /proc, /sys and os-release, a math-generated pixel
-planet tinted to your bedazzle accent, memory/disk bars, and the 16-color
-palette strip. Run on demand (bedazzle theme startup, or `fetch`).
+system facts from /proc, /sys and os-release (or sysctl / vm_stat / pmset
+on macOS), a math-generated pixel planet tinted to your bedazzle accent,
+memory/disk bars, and the 16-color palette strip. Run on demand (bedazzle
+theme startup, or `fetch`).
 
 Static facts are cached in bedazzle.cache.json so repeat calls are instant.
 """
@@ -14,13 +15,17 @@ import colorsys
 import json
 import os
 import platform
+import re
 import shutil
 import socket
+import subprocess
 import sys
+import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 CACHE = os.path.join(ROOT, "bedazzle.cache.json")
+IS_MAC = sys.platform == "darwin"
 E = "\x1b["
 RESET = E + "0m"
 DIM = E + "2m"
@@ -54,7 +59,23 @@ def _read(path, default=""):
         return default
 
 
+def _run(args, timeout=3):
+    """Capture a command's stdout, or "" if it is missing / slow / angry."""
+    try:
+        r = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
+        return r.stdout.strip() if r.returncode == 0 else ""
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+
+def _sysctl(key):
+    return _run(["sysctl", "-n", key], timeout=2)
+
+
 def os_pretty():
+    if IS_MAC:
+        ver = platform.mac_ver()[0]
+        return f"macOS {ver}".strip() if ver else "macOS"
     for line in _read("/etc/os-release").splitlines():
         if line.startswith("PRETTY_NAME="):
             return line.split("=", 1)[1].strip().strip('"')
@@ -62,6 +83,9 @@ def os_pretty():
 
 
 def cpu_name():
+    if IS_MAC:
+        # Apple Silicon reports "Apple M2 Pro" here too, not just Intel parts.
+        return _sysctl("machdep.cpu.brand_string") or platform.machine() or "unknown"
     for line in _read("/proc/cpuinfo").splitlines():
         if line.lower().startswith("model name"):
             return " ".join(line.split(":", 1)[1].split())
@@ -69,29 +93,54 @@ def cpu_name():
 
 
 def gpu_name():
-    try:
-        import subprocess
-        out = subprocess.run(["lspci"], capture_output=True, text=True, timeout=3).stdout
-        for line in out.splitlines():
-            low = line.lower()
-            if "vga" in low or "3d controller" in low or "display" in low:
-                return line.split(": ", 1)[-1].strip()[:48]
-    except Exception:
-        pass
+    if IS_MAC:
+        # On Apple Silicon the GPU is the SoC, so the CPU string already has
+        # the answer — worth special-casing, because this runs on the login
+        # path and system_profiler takes seconds.
+        chip = _sysctl("machdep.cpu.brand_string")
+        if chip.startswith("Apple"):
+            return chip
+        # Intel Macs need the real lookup. It only runs once (the result is
+        # cached in bedazzle.cache.json) — but if the cache is unwritable it
+        # runs every login, hence the tight timeout.
+        for line in _run(["system_profiler", "-detailLevel", "mini",
+                          "SPDisplaysDataType"], timeout=4).splitlines():
+            if "Chipset Model:" in line:
+                return line.split(":", 1)[1].strip()[:48]
+        return ""
+    out = _run(["lspci"])
+    for line in out.splitlines():
+        low = line.lower()
+        if "vga" in low or "3d controller" in low or "display" in low:
+            return line.split(": ", 1)[-1].strip()[:48]
     return ""
 
 
 def host_model():
+    if IS_MAC:
+        # e.g. "MacBookPro18,3" — the identifier, same as neofetch shows
+        # before its marketing-name lookup table.
+        return _sysctl("hw.model") or platform.node()
     name = _read("/sys/devices/virtual/dmi/id/product_name")
     vendor = _read("/sys/devices/virtual/dmi/id/sys_vendor")
     combo = f"{vendor} {name}".strip()
     return combo or platform.node()
 
 
-def uptime_txt():
+def _uptime_secs():
+    if IS_MAC:
+        # kern.boottime prints "{ sec = 1724500000, usec = 12345 } Thu Aug …"
+        m = re.search(r"sec\s*=\s*(\d+)", _sysctl("kern.boottime"))
+        return time.time() - int(m.group(1)) if m else None
     try:
-        secs = float(_read("/proc/uptime").split()[0])
+        return float(_read("/proc/uptime").split()[0])
     except (ValueError, IndexError):
+        return None
+
+
+def uptime_txt():
+    secs = _uptime_secs()
+    if secs is None or secs < 0:
         return "?"
     d, rem = divmod(int(secs), 86400)
     h, rem = divmod(rem, 3600)
@@ -99,7 +148,30 @@ def uptime_txt():
     return (f"{d}d " if d else "") + f"{h}h {m}m"
 
 
+def _mem_gib_mac():
+    total = int(_sysctl("hw.memsize") or 0) / 2 ** 30
+    out = _run(["vm_stat"], timeout=2)
+    if not total or not out:
+        return 0.0, total
+    page = 4096
+    m = re.search(r"page size of (\d+) bytes", out)
+    if m:
+        page = int(m.group(1))
+    pages = {}
+    for line in out.splitlines():
+        m = re.match(r'"?([^":]+)"?:\s+(\d+)\.', line)
+        if m:
+            pages[m.group(1).strip().lower()] = int(m.group(2))
+    # Activity Monitor's "Memory Used" = active + wired + compressed.
+    used_pages = (pages.get("pages active", 0)
+                  + pages.get("pages wired down", 0)
+                  + pages.get("pages occupied by compressor", 0))
+    return min(used_pages * page / 2 ** 30, total), total
+
+
 def mem_gib():
+    if IS_MAC:
+        return _mem_gib_mac()
     total = avail = 0
     for line in _read("/proc/meminfo").splitlines():
         if line.startswith("MemTotal:"):
@@ -110,6 +182,10 @@ def mem_gib():
 
 
 def battery_pct():
+    if IS_MAC:
+        # "-InternalBattery-0 (id=…)	87%; discharging; 4:12 remaining"
+        m = re.search(r"(\d+)%", _run(["pmset", "-g", "batt"], timeout=2))
+        return int(m.group(1)) if m else None
     base = "/sys/class/power_supply"
     try:
         for name in sorted(os.listdir(base)):
@@ -162,7 +238,6 @@ def load_static():
 def weather():
     wf = os.path.join(ROOT, "bedazzle.weather.txt")
     try:
-        import time
         if os.path.exists(wf) and time.time() - os.path.getmtime(wf) < 7200:
             return _read(wf)
     except OSError:

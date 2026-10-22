@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
-# Shellwash — Linux / zsh installer.
+# Shellwash — Linux / macOS zsh installer.
 # Usually invoked by ./install.sh or after clone: bash linux/install.sh
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ZSHRC="${ZDOTDIR:-$HOME}/.zshrc"
-KITTY_CONF="${XDG_CONFIG_HOME:-$HOME/.config}/kitty/kitty.conf"
 KITTY_MARKER='# >>> shellwash termbg >>>'
 KITTY_END='# <<< shellwash termbg <<<'
 
@@ -55,7 +54,8 @@ if grep -qE '# >>> (shellwash|bedazzle|ascii-dreams) login >>>' "$ZSHRC" 2>/dev/
   say "login block already present — skipped"
 else
   cp -f "$ZSHRC" "$ZSHRC.bak-before-shellwash" 2>/dev/null || true
-  tmp="$(mktemp)"
+  # BSD/macOS mktemp requires a template — bare `mktemp` is GNU-only.
+  tmp="$(mktemp "${TMPDIR:-/tmp}/shellwash.XXXXXX")"
   {
     printf '%s\n' "$TOP_START"
     printf '[[ -o interactive ]] && command %s "%s/linux/fetch.py" --login 2>/dev/null\n' "$LOGIN_PY" "$ROOT"
@@ -67,9 +67,36 @@ else
 fi
 
 # ── kitty: termbg remote-control snippet ──────────────────────────────────
+# Where kitty actually reads its config. The search order puts
+# $XDG_CONFIG_HOME/kitty first, but a macOS user who installed the .app may
+# already keep theirs under ~/Library/Preferences/kitty — and creating a fresh
+# ~/.config/kitty/kitty.conf would shadow it, silently orphaning their whole
+# config. So: append to whichever file already exists, and only fall back to
+# the XDG path when neither does.
+kitty_conf_path() {
+  local xdg="${XDG_CONFIG_HOME:-$HOME/.config}/kitty/kitty.conf"
+  local mac="$HOME/Library/Preferences/kitty/kitty.conf"
+  if [[ -f "$xdg" ]]; then printf '%s\n' "$xdg"
+  elif [[ -f "$mac" ]]; then printf '%s\n' "$mac"
+  else printf '%s\n' "$xdg"; fi
+}
+KITTY_CONF="$(kitty_conf_path)"
+
+# kitty on macOS is an .app and usually not on PATH; termbg looks in the same
+# places, so accept the bundle here too rather than skipping the config.
+have_kitty() {
+  command -v kitty >/dev/null 2>&1 && return 0
+  local p
+  for p in /Applications/kitty.app/Contents/MacOS/kitty \
+           "$HOME/Applications/kitty.app/Contents/MacOS/kitty"; do
+    [[ -x "$p" ]] && return 0
+  done
+  return 1
+}
+
 install_kitty_snippet() {
-  if ! command -v kitty >/dev/null 2>&1; then
-    warn "kitty not on PATH — skipped kitty.conf (termbg needs kitty on Linux)"
+  if ! have_kitty; then
+    warn "kitty not found — skipped kitty.conf (termbg needs kitty on Linux/macOS)"
     return 0
   fi
   if [[ -f "$KITTY_CONF" ]] && grep -qF "$KITTY_MARKER" "$KITTY_CONF" 2>/dev/null; then

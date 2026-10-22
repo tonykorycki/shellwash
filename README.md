@@ -5,9 +5,9 @@ A shell upgrade and a living terminal background.
 - **bedazzle** - prompt theme, reactive ASCII buddy, fetch panel, feature toggles
 - **termbg** - pixel-art background behind your text that evolves as you work
 
-Cross-platform: **Windows** (PowerShell + Windows Terminal) and **Linux**
-(zsh + oh-my-zsh + kitty for termbg). See [install](docs/install.md) for
-full prerequisites (Python, git, optional playerctl / gh).
+Cross-platform: **Windows** (PowerShell + Windows Terminal), **Linux** and
+**macOS** (zsh + oh-my-zsh + kitty for termbg). See [install](docs/install.md)
+for full prerequisites (Python, git, optional playerctl / gh).
 
 ## Documentation
 
@@ -21,7 +21,7 @@ Full docs in [`docs/`](docs/):
 [the buddy](docs/buddy.md) ·
 [troubleshooting](docs/troubleshooting.md)
 
-## Quick start (Linux)
+## Quick start (Linux / macOS)
 
 **One command** (clone + install + kitty config):
 
@@ -40,7 +40,8 @@ exec zsh
 
 Type `bedazzle` to see everything. termbg auto-starts on login in kitty or
 Windows Terminal. **Restart kitty fully** after a first install so termbg can
-connect.
+connect. On macOS the same script applies — see
+[install](docs/install.md#macos) for the two features that differ.
 
 **Undo:** remove `# >>> shellwash >>>` and `# >>> shellwash login >>>` from
 `~/.zshrc`.

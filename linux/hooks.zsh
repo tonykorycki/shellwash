@@ -1,6 +1,7 @@
 # Shellwash — always-on hooks (any theme, p10k included).
 
 zmodload zsh/datetime 2>/dev/null
+zmodload -F zsh/stat b:zstat 2>/dev/null   # zstat: portable stat(2), no fork
 
 typeset -gF AD_CMD_START=0
 typeset -gF AD_LAST_MS=0
@@ -83,7 +84,18 @@ ad_buddy_precmd() {
 ad_refresh_weather() {
   local wf="$AD_ROOT/bedazzle.weather.txt" mtime=0
   command -v curl >/dev/null 2>&1 || return
-  [[ -f "$wf" ]] && mtime=$(stat -c %Y "$wf" 2>/dev/null || echo 0)
+  # Prefer zstat: no subprocess, and portable. If zsh/stat is unavailable
+  # fall back to the stat binary — GNU wants -c %Y, BSD/macOS wants -f %m.
+  # Without this fallback mtime would stay 0 and the 30-minute cache below
+  # would never hold, re-fetching wttr.in on every new shell.
+  if [[ -f "$wf" ]]; then
+    local -a _st
+    if (( $+builtins[zstat] )) && zstat -A _st +mtime "$wf" 2>/dev/null; then
+      mtime=$_st[1]
+    else
+      mtime=$(stat -c %Y "$wf" 2>/dev/null || stat -f %m "$wf" 2>/dev/null || echo 0)
+    fi
+  fi
   (( EPOCHSECONDS - mtime < 1800 )) && return   # fresh enough
   ( curl -fsS --max-time 8 'https://wttr.in/?format=%t+%C' -o "$wf" 2>/dev/null &! ) 2>/dev/null
 }

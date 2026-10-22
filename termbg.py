@@ -37,6 +37,7 @@ import json
 import math
 import os
 import random
+import shutil
 import struct
 import subprocess
 import sys
@@ -1299,8 +1300,8 @@ def mod_nowplaying(ctx):
         boom_cx = cur
         for i, it in enumerate(row):
             cx = cur + it["w"] / 2
-            pos = (i / n) * 2 - 1 if n else 0.0
-            base = floor_base - 9 * pos * pos + _jitter(f"{it.get('name', it['kind'])}|{i}", span=4)
+            u = (i / n) * 2 - 1 if n else 0.0
+            base = floor_base - 9 * u * u +_jitter(f"{it.get('name', it['kind'])}|{i}", span=4)
             if it["kind"] == "boombox":
                 boom_cx = cx
                 _boombox(img, cx, base, pal, hi, beat)
@@ -1422,17 +1423,44 @@ def _kitty_socket_paths():
         paths.append(addr)
 
     add(os.environ.get("KITTY_LISTEN_ON", ""))
-    for path in sorted(glob.glob("/tmp/kitty*")):
-        try:
-            if os.path.exists(path):
-                add(f"unix:{path}")
-        except OSError:
-            pass
+    # /tmp is where our kitty.conf snippet points listen_on; TMPDIR is checked
+    # too because macOS gives each user a private /var/folders/… temp dir.
+    tmpdirs = ["/tmp"]
+    tmp = os.environ.get("TMPDIR", "").rstrip("/")
+    if tmp and tmp not in tmpdirs:
+        tmpdirs.append(tmp)
+    for d in tmpdirs:
+        for path in sorted(glob.glob(os.path.join(d, "kitty*"))):
+            try:
+                if os.path.exists(path):
+                    add(f"unix:{path}")
+            except OSError:
+                pass
     return paths
 
 
+_KITTY_EXE = None
+
+
+def _kitty_exe():
+    """Path to the kitty binary. On macOS kitty ships as an .app whose
+    binary is usually not on PATH, so fall back to the bundle."""
+    global _KITTY_EXE
+    if _KITTY_EXE is None:
+        found = shutil.which("kitty")
+        if not found and sys.platform == "darwin":
+            for p in ("/Applications/kitty.app/Contents/MacOS/kitty",
+                      os.path.expanduser(
+                          "~/Applications/kitty.app/Contents/MacOS/kitty")):
+                if os.access(p, os.X_OK):
+                    found = p
+                    break
+        _KITTY_EXE = found or "kitty"
+    return _KITTY_EXE
+
+
 def _kitty_run(to, *args):
-    cmd = ["kitty", "@", "--to", to] + list(args)
+    cmd = [_kitty_exe(), "@", "--to", to] + list(args)
     try:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=6)
         return r.returncode == 0, (r.stderr or r.stdout).strip()
@@ -1456,7 +1484,7 @@ def _kitty(*args):
 
     # Foreground kitty tab with no listen_on — `kitty @` works without --to.
     try:
-        r = subprocess.run(["kitty", "@"] + list(args),
+        r = subprocess.run([_kitty_exe(), "@"] + list(args),
                            capture_output=True, text=True, timeout=6)
         return r.returncode == 0, (r.stderr or r.stdout).strip()
     except FileNotFoundError:

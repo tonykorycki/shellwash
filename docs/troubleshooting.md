@@ -46,7 +46,7 @@ The corner buddy skips the first prompt for the same reason.
 ## Buddy not showing
 
 - Enable the sprite feature: `pet on` or `bedazzle on sprite`.
-- On Linux, the buddy appears after the first command (not the first prompt).
+- On Linux/macOS, the buddy appears after the first command (not the first prompt).
 - Needs truecolor and cursor save/restore (kitty, WT, most modern terminals).
 
 ## Pet not reacting to GitHub PR comments
@@ -74,7 +74,10 @@ Your music player must expose MPRIS (Spotify, VLC, and most Linux players do).
 **Pillow** (`pip install Pillow`) optional for album-art pixels; without it you
 get a colored vinyl disc instead.
 
+**macOS:** not supported — MPRIS is Linux-only and there is no `playerctl`.
+The module still renders, just without track data.
+
 ## Nothing happens after install
 
-Open a **new** terminal (or `reload` on Linux). Then run `bedazzle` to confirm
+Open a **new** terminal (or `reload` on Linux/macOS). Then run `bedazzle` to confirm
 it loaded.

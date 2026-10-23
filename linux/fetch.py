@@ -23,6 +23,7 @@ import socket
 import subprocess
 import sys
 import time
+import unicodedata
 
 import adconf
 import logos
@@ -111,14 +112,43 @@ def gpu_name():
         for line in _run(["system_profiler", "-detailLevel", "mini",
                           "SPDisplaysDataType"], timeout=4).splitlines():
             if "Chipset Model:" in line:
-                return line.split(":", 1)[1].strip()[:48]
+                return line.split(":", 1)[1].strip()
         return ""
     out = _run(["lspci"])
     for line in out.splitlines():
         low = line.lower()
         if "vga" in low or "3d controller" in low or "display" in low:
-            return line.split(": ", 1)[-1].strip()[:48]
+            return gpu_pretty(line.split(": ", 1)[-1])
     return ""
+
+
+# lspci spells vendors out in full; fastfetch-style short names read better.
+_GPU_VENDORS = (
+    ("Advanced Micro Devices, Inc.", "AMD"),
+    ("NVIDIA Corporation", "NVIDIA"),
+    ("Intel Corporation", "Intel"),
+    ("ASPEED Technology, Inc.", "ASPEED"),
+    ("Matrox Electronics Systems Ltd.", "Matrox"),
+)
+
+
+def gpu_pretty(raw):
+    """'NVIDIA Corporation GA102 [GeForce RTX 3090] (rev a1)' -> 'NVIDIA GeForce RTX 3090'."""
+    s = re.sub(r"\s*\(rev [^)]*\)$", "", raw.strip())
+    # Older caches hold the name sliced at 48 chars, often mid-bracket.
+    s = re.sub(r"\s*[(\[][^)\]]*$", "", s)
+    for long, short in _GPU_VENDORS:
+        if s.startswith(long):
+            break
+    else:
+        return s
+    model = re.sub(r"^\[AMD/ATI\]\s*", "", s[len(long):].strip())
+    m = re.search(r"\[([^\]]+)\]$", model)  # the marketing name, when lspci knows it
+    if m:
+        model = m.group(1)
+    if model.startswith(short + " "):  # "ASPEED ASPEED Graphics Family"
+        model = model[len(short):].strip()
+    return f"{short} {model}".strip()
 
 
 def host_model():
@@ -257,6 +287,45 @@ def bar(frac, width=12):
     return f"{col}{'█' * fill}{E}38;2;70;74;90m{'░' * (width - fill)}{RESET}"
 
 
+_ESC = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+
+
+def _cell(ch):
+    if ch == "\ufe0f":  # emoji presentation: the base char renders 2 wide
+        return 1
+    if unicodedata.category(ch) in ("Mn", "Me", "Cf"):
+        return 0
+    return 2 if unicodedata.east_asian_width(ch) in ("W", "F") else 1
+
+
+def vis_width(s):
+    return sum(_cell(ch) for ch in _ESC.sub("", s))
+
+
+def fit(s, width):
+    """Cut s to width terminal cells (escapes are free), ending in '…' if cut.
+
+    A row that overflows wraps to column 0 and lands inside the logo, so
+    every info row goes through this before it is printed.
+    """
+    if vis_width(s) <= width:
+        return s
+    out, used, i = [], 0, 0
+    while i < len(s):
+        m = _ESC.match(s, i)
+        if m:
+            out.append(m.group())
+            i = m.end()
+            continue
+        w = _cell(s[i])
+        if used + w > width - 1:
+            break
+        out.append(s[i])
+        used += w
+        i += 1
+    return "".join(out) + ("…" if width > 0 else "") + RESET
+
+
 def fetch_enabled():
     try:
         with open(os.path.join(ROOT, "bedazzle.config.json"), encoding="utf-8-sig") as f:
@@ -300,7 +369,7 @@ def main():
             ("term", terminal_name()), ("host", st["host"]),
             ("cpu", st["cpu"]), ]
     if st.get("gpu"):
-        rows.append(("gpu", st["gpu"]))
+        rows.append(("gpu", gpu_pretty(st["gpu"])))
     rows.append(("memory", f"{bar(used / max(tot, 1))}  {used:.1f} / {tot:.1f} GiB"))
     rows.append(("disk", f"{bar(du.used / du.total)}  {du.used // 2**30} / {du.total // 2**30} GB"))
     ip = local_ip()
@@ -317,16 +386,20 @@ def main():
     rows.append(("", "".join(f"{E}10{i}m   " for i in range(8)) + RESET))
 
     logo, logo_w = logos.lines(logo_name, accent_hue(), cfg.get("logo_bands", False))
+    cols = shutil.get_terminal_size().columns
+    room = cols - logo_w - 4
+    if room < 32:  # too narrow for logo + info side by side: info alone
+        logo, room = [], cols - 2
     n = max(len(logo), len(rows))
     print()
     for i in range(n):
-        left = logo[i] if i < len(logo) else " " * logo_w
+        left = (logo[i] if i < len(logo) else " " * logo_w) + "  " if logo else ""
         if i < len(rows):
             k, v = rows[i]
-            right = f"{acc}{k.ljust(9)}{RESET}{v}" if k else v
+            right = fit(f"{acc}{k.ljust(9)}{RESET}{v}" if k else v, room)
         else:
             right = ""
-        print(f"  {left}  {right}")
+        print(f"  {left}{right}")
     print()
 
 
